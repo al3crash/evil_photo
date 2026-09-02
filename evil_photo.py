@@ -185,7 +185,7 @@ if archivo_subido is not None:
             detecciones = net.forward()
             estados_animo = ["ANALÍTICO // ALERTA", "NEUTRO SPECTRUM", "EMOCIÓN DETECTADA", "PÁNICO SUSPENDIDO", "FELICIDAD ESPECTRAL"]
             generos = ["MASCULINO (VECTORES)", "FEMENINO (VECTORES)"]
-            for i in range(0, detecciones.shape):
+            for i in range(detecciones.shape[2]):
                 if detecciones[0, 0, i, 2] > 0.5:
                     box = detecciones[0, 0, i, 3:7] * np.array([w_original, h_original, w_original, h_original])
                     (x1, y1, x2, y2) = box.astype("int")
@@ -265,12 +265,30 @@ if archivo_subido is not None:
         canvas.addEventListener('mousemove', function(e) {{ actualizarPosicion(e.clientX, e.clientY); }});
         canvas.addEventListener('click', function(e) {{ miraBloqueada = !miraBloqueada; localStorage.setItem('evil_lock', miraBloqueada); if (miraBloqueada) {{ txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo."; txtInstrucciones.style.color = "#ff2222"; }} else {{ txtInstrucciones.innerHTML = "🟢 ESCANEO ACTIVO // Haz un clic en la foto para FIJAR las coordenadas de la lupa."; txtInstrucciones.style.color = "#00ff66"; const rect = canvas.getBoundingClientRect(); mouseX = (e.clientX - rect.left) * (canvas.width / rect.width); mouseY = (e.clientY - rect.top) * (canvas.height / rect.height); localStorage.setItem('evil_x', mouseX); localStorage.setItem('evil_y', mouseY); actualizarLupa(); }} }});
         canvas.addEventListener('wheel', function(e) {{ e.preventDefault(); if (e.deltaY < 0) zoomFactor += 0.5; else zoomFactor -= 0.5; zoomFactor = Math.max(1.5, Math.min(10.0, zoomFactor)); actualizarLupa(); }});
-        canvas.addEventListener('touchmove', function(e) {{ if(e.touches.length == 1 && !miraBloqueada) {{ e.preventDefault(); actualizarPosicion(e.touches.clientX, e.touches.clientY); }} }}, {{ passive: false }});
-        canvas.addEventListener('touchstart', function(e) {{ if(e.touches.length == 1) {{ actualizarPosicion(e.touches.clientX, e.touches.clientY); }} }});
+        canvas.addEventListener('touchmove', function(e) {{ if(e.touches.length == 1 && !miraBloqueada) {{ e.preventDefault(); actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); }} }}, {{ passive: false }});
+        canvas.addEventListener('touchstart', function(e) {{ if(e.touches.length == 1) {{ actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); }} }});
         function descargarLupaLocal() {{ const link = document.createElement('a'); link.download = 'evil_evidence_lupa.png'; link.href = lupaCanvas.toDataURL("image/png"); link.click(); }}
     </script>
     """
-    st.components.v1.html(html_layout, height=920, scrolling=False)
+    # --- ALTURA DINÁMICA DEL VISOR ---
+    # La fotografía puede ser horizontal o vertical. Una altura fija del iframe
+    # recortaba la sección SPECTRAL_ZOOM cuando la imagen era alta.
+    altura_panel_foto = alto_web + 100
+
+    # Título + canvas de 300 px + botón + padding y márgenes.
+    altura_panel_lupa = 500
+
+    # Separación entre paneles + margen inferior de seguridad.
+    altura_total_html = altura_panel_foto + altura_panel_lupa + 100
+
+    # Evita que el visor quede demasiado pequeño con fotografías horizontales.
+    altura_total_html = max(1100, altura_total_html)
+
+    st.components.v1.html(
+        html_layout,
+        height=altura_total_html,
+        scrolling=False
+    )
     # --- RENDERIZADO DEL PANEL DE ANÁLISIS FORENSE PERICIAL CRÍTICO ---
     if activar_lga or activar_prnu or activar_retinex:
         st.markdown('<div class="panel-forense" style="border-left: 4px solid #00ffff;">', unsafe_allow_html=True)
