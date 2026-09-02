@@ -63,7 +63,15 @@ st.markdown("""
         margin-bottom: 20px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
-    canvas { max-width: 100% !important; height: auto !important; border-radius: 2px; }
+    canvas { max-width: 100% !important; border-radius: 2px; }
+
+    /* El monitor principal mantiene siempre la misma proporción */
+    #evilCanvas {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 16 / 9;
+        object-fit: contain;
+    }
     
     /* Estilo ciberpunk para el cargador de archivos */
     div[data-testid="stFileUploader"] {
@@ -261,7 +269,9 @@ if archivo_subido is not None:
     if activar_relieve: img_cv = cv2.filter2D(img_cv, -1, np.array([[-2, -1, 0], [-1, 1, 1]]) * int_relieve) + 128
     if activar_ir: img_cv = cv2.applyColorMap(cv2.add(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), int_ir) if int_ir > 0 else cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_BONE)
     if activar_canny: img_cv = cv2.cvtColor(cv2.Canny(img_cv, int_canny, int_canny * 3), cv2.COLOR_GRAY2BGR)
-    ancho_web = 900
+    # Tamaño interno para generar una imagen de buena calidad.
+    # El monitor visual tendrá un tamaño FIJO y no cambiará según la foto.
+    ancho_web = 1200
     alto_web = int((h_original / w_original) * ancho_web)
     img_render = cv2.resize(img_cv, (ancho_web, alto_web))
     _, buffer = cv2.imencode('.png', img_render)
@@ -271,7 +281,7 @@ if archivo_subido is not None:
 
     html_layout = f"""
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
-        <div class="panel-forense" style="width: 100%; max-width: 1000px; background-color: #0f1115; border: 1px solid #1f242e; border-left: 4px solid #ff2222; padding: 15px; border-radius: 4px;">
+        <div class="panel-forense" style="width: 100%; max-width: 900px; background-color: #0f1115; border: 1px solid #1f242e; border-left: 4px solid #ff2222; padding: 15px; border-radius: 4px;">
             <p style="color: #ff2222; font-family: monospace; font-size: 13px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase;">[MONITOR_ALPHA // VISOR DE CAMPO]</p>
             <p id="instrucciones" style="color: #00ff66; font-family: monospace; font-size: 11px; margin: 0 0 10px 0;">🟢 ESCANEO ACTIVO // Haz un clic en la foto para FIJAR las coordenadas de la lupa.</p>
             <canvas id="evilCanvas" style="border: 1px solid #ff2222; background-color: #050505; width: 100%;"></canvas>
@@ -286,11 +296,59 @@ if archivo_subido is not None:
         const canvas = document.getElementById('evilCanvas'); const ctx = canvas.getContext('2d');
         const lupaCanvas = document.getElementById('lupaCanvas'); const lupaCtx = lupaCanvas.getContext('2d', {{ willReadFrequently: true }});
         const txtInstrucciones = document.getElementById('instrucciones');
-        let mouseX = parseFloat(localStorage.getItem('evil_x')) || {ancho_web / 2}; let mouseY = parseFloat(localStorage.getItem('evil_y')) || {alto_web / 2};
+        let mouseX = parseFloat(localStorage.getItem('evil_x')) || 450; let mouseY = parseFloat(localStorage.getItem('evil_y')) || 253;
         let zoomFactor = {factor_zoom_movil}; let miraBloqueada = localStorage.getItem('evil_lock') === 'true';
-        const img = new Image(); img.src = "data:image/png;base64,{img_str}";
-        img.onload = function() {{ canvas.width = {ancho_web}; canvas.height = (img.height / img.width) * canvas.width; if (miraBloqueada) {{ txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo."; txtInstrucciones.style.color = "#ff2222"; }} draw(); }};
-        function draw() {{ ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height); actualizarLupa(); }}
+        // ---------------------------------------------------------
+        // MONITOR_ALPHA CON TAMAÑO PREDETERMINADO
+        // ---------------------------------------------------------
+        // El monitor nunca cambia de tamaño aunque la fotografía sea
+        // vertical, horizontal, panorámica o cuadrada.
+        const MONITOR_WIDTH = 900;
+        const MONITOR_HEIGHT = 506; // proporción aproximada 16:9
+
+        const img = new Image();
+        img.src = "data:image/png;base64,{img_str}";
+
+        img.onload = function() {{
+            canvas.width = MONITOR_WIDTH;
+            canvas.height = MONITOR_HEIGHT;
+
+            if (miraBloqueada) {{
+                txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo.";
+                txtInstrucciones.style.color = "#ff2222";
+            }}
+
+            draw();
+        }};
+
+        function draw() {{
+            // Fondo negro fijo del monitor
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ajustar la foto COMPLETA dentro del monitor sin deformarla.
+            const escala = Math.min(
+                canvas.width / img.width,
+                canvas.height / img.height
+            );
+
+            const anchoDibujo = img.width * escala;
+            const altoDibujo = img.height * escala;
+
+            const offsetX = (canvas.width - anchoDibujo) / 2;
+            const offsetY = (canvas.height - altoDibujo) / 2;
+
+            ctx.drawImage(
+                img,
+                offsetX,
+                offsetY,
+                anchoDibujo,
+                altoDibujo
+            );
+
+            actualizarLupa();
+        }}
         function actualizarLupa() {{ lupaCtx.clearRect(0, 0, lupaCanvas.width, lupaCanvas.height); lupaCtx.imageSmoothingEnabled = false; let size = 300 / zoomFactor; lupaCtx.drawImage(canvas, mouseX - size/2, mouseY - size/2, size, size, 0, 0, 300, 300); }}
         function actualizarPosicion(clientX, clientY) {{ if (miraBloqueada) return; const rect = canvas.getBoundingClientRect(); mouseX = (clientX - rect.left) * (canvas.width / rect.width); mouseY = (clientY - rect.top) * (canvas.height / rect.height); localStorage.setItem('evil_x', mouseX); localStorage.setItem('evil_y', mouseY); actualizarLupa(); }}
         canvas.addEventListener('mousemove', function(e) {{ actualizarPosicion(e.clientX, e.clientY); }});
@@ -301,19 +359,10 @@ if archivo_subido is not None:
         function descargarLupaLocal() {{ const link = document.createElement('a'); link.download = 'evil_evidence_lupa.png'; link.href = lupaCanvas.toDataURL("image/png"); link.click(); }}
     </script>
     """
-    # --- ALTURA DINÁMICA DEL VISOR ---
-    # La fotografía puede ser horizontal o vertical. Una altura fija del iframe
-    # recortaba la sección SPECTRAL_ZOOM cuando la imagen era alta.
-    altura_panel_foto = alto_web + 100
-
-    # Título + canvas de 300 px + botón + padding y márgenes.
-    altura_panel_lupa = 500
-
-    # Separación entre paneles + margen inferior de seguridad.
-    altura_total_html = altura_panel_foto + altura_panel_lupa + 100
-
-    # Evita que el visor quede demasiado pequeño con fotografías horizontales.
-    altura_total_html = max(1100, altura_total_html)
+    # --- ALTURA FIJA DEL VISOR ---
+    # El monitor ya tiene un tamaño predeterminado, por lo que todo el
+    # componente mantiene una altura constante para cualquier fotografía.
+    altura_total_html = 1200
 
     st.components.v1.html(
         html_layout,
