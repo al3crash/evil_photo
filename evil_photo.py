@@ -9,12 +9,43 @@ import os
 import urllib.request
 
 # Configuración adaptable profesional para múltiples pantallas
-st.set_page_config(page_title="EVIL_PHOTO // Forensic Console", page_icon="👁️‍🗨️", layout="centered")
+st.set_page_config(page_title="EVIL_PHOTO // Forensic Console", page_icon="👁️‍🗨️", layout="wide")
 
 # Inyección de CSS Avanzado: Estilo Interfaz de Radar Forense Ciberpunk
 st.markdown("""
     <style>
     .main { background-color: #050505; font-family: 'Courier New', monospace; }
+
+    /* Aprovechar el ancho disponible en PC y tablet */
+    .block-container {
+        max-width: 1600px !important;
+        width: 100% !important;
+        padding-left: 2.5rem !important;
+        padding-right: 2.5rem !important;
+        padding-top: 2rem !important;
+    }
+
+    section[data-testid="stMain"] > div {
+        max-width: 1600px !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+    }
+
+    /* Ajuste especial para tablet y pantallas pequeñas */
+    @media (max-width: 900px) {
+        .block-container {
+            max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .block-container {
+            padding-left: 0.6rem !important;
+            padding-right: 0.6rem !important;
+        }
+    }
     .titulo-consola {
         color: #ff2222;
         text-align: center;
@@ -230,7 +261,7 @@ if archivo_subido is not None:
     if activar_relieve: img_cv = cv2.filter2D(img_cv, -1, np.array([[-2, -1, 0], [-1, 1, 1]]) * int_relieve) + 128
     if activar_ir: img_cv = cv2.applyColorMap(cv2.add(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), int_ir) if int_ir > 0 else cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_BONE)
     if activar_canny: img_cv = cv2.cvtColor(cv2.Canny(img_cv, int_canny, int_canny * 3), cv2.COLOR_GRAY2BGR)
-    ancho_web = 550
+    ancho_web = 900
     alto_web = int((h_original / w_original) * ancho_web)
     img_render = cv2.resize(img_cv, (ancho_web, alto_web))
     _, buffer = cv2.imencode('.png', img_render)
@@ -240,7 +271,7 @@ if archivo_subido is not None:
 
     html_layout = f"""
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
-        <div class="panel-forense" style="width: 100%; max-width: 550px; background-color: #0f1115; border: 1px solid #1f242e; border-left: 4px solid #ff2222; padding: 15px; border-radius: 4px;">
+        <div class="panel-forense" style="width: 100%; max-width: 1000px; background-color: #0f1115; border: 1px solid #1f242e; border-left: 4px solid #ff2222; padding: 15px; border-radius: 4px;">
             <p style="color: #ff2222; font-family: monospace; font-size: 13px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase;">[MONITOR_ALPHA // VISOR DE CAMPO]</p>
             <p id="instrucciones" style="color: #00ff66; font-family: monospace; font-size: 11px; margin: 0 0 10px 0;">🟢 ESCANEO ACTIVO // Haz un clic en la foto para FIJAR las coordenadas de la lupa.</p>
             <canvas id="evilCanvas" style="border: 1px solid #ff2222; background-color: #050505; width: 100%;"></canvas>
@@ -255,10 +286,10 @@ if archivo_subido is not None:
         const canvas = document.getElementById('evilCanvas'); const ctx = canvas.getContext('2d');
         const lupaCanvas = document.getElementById('lupaCanvas'); const lupaCtx = lupaCanvas.getContext('2d', {{ willReadFrequently: true }});
         const txtInstrucciones = document.getElementById('instrucciones');
-        let mouseX = parseFloat(localStorage.getItem('evil_x')) || 275; let mouseY = parseFloat(localStorage.getItem('evil_y')) || 180;
+        let mouseX = parseFloat(localStorage.getItem('evil_x')) || {ancho_web / 2}; let mouseY = parseFloat(localStorage.getItem('evil_y')) || {alto_web / 2};
         let zoomFactor = {factor_zoom_movil}; let miraBloqueada = localStorage.getItem('evil_lock') === 'true';
         const img = new Image(); img.src = "data:image/png;base64,{img_str}";
-        img.onload = function() {{ canvas.width = 550; canvas.height = (img.height / img.width) * canvas.width; if (miraBloqueada) {{ txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo."; txtInstrucciones.style.color = "#ff2222"; }} draw(); }};
+        img.onload = function() {{ canvas.width = {ancho_web}; canvas.height = (img.height / img.width) * canvas.width; if (miraBloqueada) {{ txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo."; txtInstrucciones.style.color = "#ff2222"; }} draw(); }};
         function draw() {{ ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height); actualizarLupa(); }}
         function actualizarLupa() {{ lupaCtx.clearRect(0, 0, lupaCanvas.width, lupaCanvas.height); lupaCtx.imageSmoothingEnabled = false; let size = 300 / zoomFactor; lupaCtx.drawImage(canvas, mouseX - size/2, mouseY - size/2, size, size, 0, 0, 300, 300); }}
         function actualizarPosicion(clientX, clientY) {{ if (miraBloqueada) return; const rect = canvas.getBoundingClientRect(); mouseX = (clientX - rect.left) * (canvas.width / rect.width); mouseY = (clientY - rect.top) * (canvas.height / rect.height); localStorage.setItem('evil_x', mouseX); localStorage.setItem('evil_y', mouseY); actualizarLupa(); }}
