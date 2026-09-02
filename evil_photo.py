@@ -191,6 +191,11 @@ if archivo_subido is not None:
     # --- PIPELINE DE PROCESAMIENTO DE IMAGEN ORIGINAL ---
     file_bytes = np.asarray(bytearray(archivo_subido.read()), dtype=np.uint8)
     img_cv = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+    # Copia maestra SIN efectos.
+    # img_cv seguirá utilizándose para el pipeline forense/procesado.
+    img_original_cv = img_cv.copy()
+
     h_original, w_original = img_cv.shape[:2]
     
     rostros_detectados = []
@@ -273,9 +278,38 @@ if archivo_subido is not None:
     # El monitor visual tendrá un tamaño FIJO y no cambiará según la foto.
     ancho_web = 1200
     alto_web = int((h_original / w_original) * ancho_web)
-    img_render = cv2.resize(img_cv, (ancho_web, alto_web))
-    _, buffer = cv2.imencode('.png', img_render)
-    img_str = base64.b64encode(buffer).decode()
+    # ---------------------------------------------------------
+    # DOS FUENTES DE IMAGEN
+    # ---------------------------------------------------------
+    # 1. ORIGINAL: nunca recibe los efectos del pipeline.
+    # 2. PROCESADA: contiene todos los filtros/efectos activos.
+    img_original_render = cv2.resize(
+        img_original_cv,
+        (ancho_web, alto_web)
+    )
+
+    img_efecto_render = cv2.resize(
+        img_cv,
+        (ancho_web, alto_web)
+    )
+
+    _, buffer_original = cv2.imencode(
+        '.png',
+        img_original_render
+    )
+
+    _, buffer_efecto = cv2.imencode(
+        '.png',
+        img_efecto_render
+    )
+
+    img_original_str = base64.b64encode(
+        buffer_original
+    ).decode()
+
+    img_efecto_str = base64.b64encode(
+        buffer_efecto
+    ).decode()
 
     factor_zoom_movil = st.slider(
         "🔬 AJUSTE DE DISTANCIA DE ENFOQUE (ZOOM LUPA):",
@@ -286,6 +320,18 @@ if archivo_subido is not None:
     activar_mini_monitor = st.checkbox(
         "👁️ Activar mini monitor que sigue el puntero",
         value=True
+    )
+
+    # Cuando esta opción está activa, el monitor principal muestra
+    # la fotografía ORIGINAL y los efectos solo aparecen en el mini monitor.
+    efectos_solo_mini_monitor = st.checkbox(
+        "🧪 Mostrar efectos únicamente en el mini monitor",
+        value=False,
+        help=(
+            "Activado: imagen principal sin filtros y mini monitor con "
+            "los efectos forenses seleccionados. "
+            "Desactivado: ambos muestran la imagen procesada."
+        )
     )
 
     factor_zoom_mini = st.slider(
@@ -352,50 +398,120 @@ if archivo_subido is not None:
         // ---------------------------------------------------------
         // MONITOR_ALPHA CON TAMAÑO PREDETERMINADO
         // ---------------------------------------------------------
-        // El monitor nunca cambia de tamaño aunque la fotografía sea
-        // vertical, horizontal, panorámica o cuadrada.
         const MONITOR_WIDTH = 900;
-        const MONITOR_HEIGHT = 506; // proporción aproximada 16:9
+        const MONITOR_HEIGHT = 506;
 
-        const img = new Image();
-        img.src = "data:image/png;base64,{img_str}";
+        // true = monitor principal ORIGINAL + mini monitor PROCESADO
+        // false = ambos muestran la imagen PROCESADA
+        const efectosSoloMiniMonitor = {'true' if efectos_solo_mini_monitor else 'false'};
 
-        img.onload = function() {{
+        // Imagen original, sin ningún efecto aplicado.
+        const imgOriginal = new Image();
+
+        // Imagen con todos los efectos/filtros seleccionados.
+        const imgEfecto = new Image();
+
+        // Canvas invisible que contiene la versión procesada exactamente
+        // con el mismo tamaño y posición que el monitor principal.
+        const effectCanvas = document.createElement('canvas');
+        effectCanvas.width = MONITOR_WIDTH;
+        effectCanvas.height = MONITOR_HEIGHT;
+        const effectCtx = effectCanvas.getContext('2d', {{
+            willReadFrequently: true
+        }});
+
+        let imagenesListas = 0;
+
+        function cuandoImagenLista() {{
+            imagenesListas++;
+
+            if (imagenesListas < 2) return;
+
             canvas.width = MONITOR_WIDTH;
             canvas.height = MONITOR_HEIGHT;
 
             if (miraBloqueada) {{
-                txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo.";
+                txtInstrucciones.innerHTML =
+                    "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo.";
                 txtInstrucciones.style.color = "#ff2222";
             }}
 
             draw();
-        }};
+        }}
 
-        function draw() {{
-            // Fondo negro fijo del monitor
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        imgOriginal.onload = cuandoImagenLista;
+        imgEfecto.onload = cuandoImagenLista;
 
-            // Ajustar la foto COMPLETA dentro del monitor sin deformarla.
-            const escala = Math.min(
-                canvas.width / img.width,
-                canvas.height / img.height
+        imgOriginal.src = "data:image/png;base64,{img_original_str}";
+        imgEfecto.src = "data:image/png;base64,{img_efecto_str}";
+
+
+        // Dibuja cualquier imagen dentro del monitor fijo sin deformarla.
+        function dibujarImagenEnMonitor(
+            contexto,
+            imagen,
+            anchoDestino,
+            altoDestino
+        ) {{
+            contexto.clearRect(
+                0,
+                0,
+                anchoDestino,
+                altoDestino
             );
 
-            const anchoDibujo = img.width * escala;
-            const altoDibujo = img.height * escala;
+            contexto.fillStyle = "#000000";
+            contexto.fillRect(
+                0,
+                0,
+                anchoDestino,
+                altoDestino
+            );
 
-            const offsetX = (canvas.width - anchoDibujo) / 2;
-            const offsetY = (canvas.height - altoDibujo) / 2;
+            const escala = Math.min(
+                anchoDestino / imagen.width,
+                altoDestino / imagen.height
+            );
 
-            ctx.drawImage(
-                img,
+            const anchoDibujo = imagen.width * escala;
+            const altoDibujo = imagen.height * escala;
+
+            const offsetX =
+                (anchoDestino - anchoDibujo) / 2;
+
+            const offsetY =
+                (altoDestino - altoDibujo) / 2;
+
+            contexto.drawImage(
+                imagen,
                 offsetX,
                 offsetY,
                 anchoDibujo,
                 altoDibujo
+            );
+        }}
+
+
+        function draw() {{
+            // Siempre preparar la versión con EFECTOS en el canvas oculto.
+            dibujarImagenEnMonitor(
+                effectCtx,
+                imgEfecto,
+                MONITOR_WIDTH,
+                MONITOR_HEIGHT
+            );
+
+            // Elegir qué se muestra en el monitor principal.
+            const imagenPrincipal =
+                efectosSoloMiniMonitor
+                    ? imgOriginal
+                    : imgEfecto;
+
+            dibujarImagenEnMonitor(
+                ctx,
+                imagenPrincipal,
+                canvas.width,
+                canvas.height
             );
 
             actualizarLupa();
@@ -445,8 +561,16 @@ if archivo_subido is not None:
 
             miniCtx.imageSmoothingEnabled = false;
 
+            // Fuente del mini monitor:
+            // - Modo "solo efectos en mini": usa effectCanvas oculto.
+            // - Modo normal: usa exactamente lo visible en el monitor principal.
+            const fuenteMiniMonitor =
+                efectosSoloMiniMonitor
+                    ? effectCanvas
+                    : canvas;
+
             miniCtx.drawImage(
-                canvas,
+                fuenteMiniMonitor,
                 canvasX - size / 2,
                 canvasY - size / 2,
                 size,
