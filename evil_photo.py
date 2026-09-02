@@ -277,14 +277,50 @@ if archivo_subido is not None:
     _, buffer = cv2.imencode('.png', img_render)
     img_str = base64.b64encode(buffer).decode()
 
-    factor_zoom_movil = st.slider("🔬 AJUSTE DE DISTANCIA DE ENFOQUE (ZOOM LUPA):", 1.5, 8.0, 4.0, 0.5)
+    factor_zoom_movil = st.slider(
+        "🔬 AJUSTE DE DISTANCIA DE ENFOQUE (ZOOM LUPA):",
+        1.5, 8.0, 4.0, 0.5
+    )
+
+    st.markdown("### 🖥️ MINI MONITOR FLOTANTE")
+    activar_mini_monitor = st.checkbox(
+        "👁️ Activar mini monitor que sigue el puntero",
+        value=True
+    )
+
+    factor_zoom_mini = st.slider(
+        "🔍 ZOOM DEL MINI MONITOR (- / +):",
+        1.0, 12.0, 4.0, 0.5
+    )
 
     html_layout = f"""
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
         <div class="panel-forense" style="width: 100%; max-width: 900px; background-color: #0f1115; border: 1px solid #1f242e; border-left: 4px solid #ff2222; padding: 15px; border-radius: 4px;">
             <p style="color: #ff2222; font-family: monospace; font-size: 13px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase;">[MONITOR_ALPHA // VISOR DE CAMPO]</p>
             <p id="instrucciones" style="color: #00ff66; font-family: monospace; font-size: 11px; margin: 0 0 10px 0;">🟢 ESCANEO ACTIVO // Haz un clic en la foto para FIJAR las coordenadas de la lupa.</p>
-            <canvas id="evilCanvas" style="border: 1px solid #ff2222; background-color: #050505; width: 100%;"></canvas>
+            <div id="monitorContainer" style="position: relative; width: 100%; overflow: hidden;">
+                <canvas id="evilCanvas" style="border: 1px solid #ff2222; background-color: #050505; width: 100%; display: block;"></canvas>
+
+                <!-- MINI MONITOR FLOTANTE: sigue el puntero -->
+                <canvas
+                    id="miniMonitor"
+                    width="220"
+                    height="150"
+                    style="
+                        display: {'block' if activar_mini_monitor else 'none'};
+                        position: absolute;
+                        width: 220px;
+                        height: 150px;
+                        pointer-events: none;
+                        border: 2px solid #00ff66;
+                        background: #000;
+                        box-shadow: 0 0 18px rgba(0, 255, 102, 0.75);
+                        border-radius: 3px;
+                        z-index: 20;
+                        transform: translate(-50%, -115%);
+                    ">
+                </canvas>
+            </div>
         </div>
         <div class="panel-forense" style="width: 100%; max-width: 330px; border-left: 4px solid #00ff66; padding: 15px; text-align: center; margin-bottom: 5px;">
             <p style="color: #00ff66; font-family: monospace; font-size: 13px; font-weight: bold; margin: 0 0 10px 0; text-transform: uppercase;">[SPECTRAL_ZOOM // LUPA DE OBJETIVO]</p>
@@ -293,11 +329,26 @@ if archivo_subido is not None:
         </div>
     </div>
     <script>
-        const canvas = document.getElementById('evilCanvas'); const ctx = canvas.getContext('2d');
-        const lupaCanvas = document.getElementById('lupaCanvas'); const lupaCtx = lupaCanvas.getContext('2d', {{ willReadFrequently: true }});
+        const canvas = document.getElementById('evilCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const monitorContainer = document.getElementById('monitorContainer');
+        const miniMonitor = document.getElementById('miniMonitor');
+        const miniCtx = miniMonitor.getContext('2d', {{ willReadFrequently: true }});
+
+        const lupaCanvas = document.getElementById('lupaCanvas');
+        const lupaCtx = lupaCanvas.getContext('2d', {{ willReadFrequently: true }});
+
         const txtInstrucciones = document.getElementById('instrucciones');
-        let mouseX = parseFloat(localStorage.getItem('evil_x')) || 450; let mouseY = parseFloat(localStorage.getItem('evil_y')) || 253;
-        let zoomFactor = {factor_zoom_movil}; let miraBloqueada = localStorage.getItem('evil_lock') === 'true';
+
+        let mouseX = parseFloat(localStorage.getItem('evil_x')) || 450;
+        let mouseY = parseFloat(localStorage.getItem('evil_y')) || 253;
+
+        let zoomFactor = {factor_zoom_movil};
+        let miniZoomFactor = {factor_zoom_mini};
+
+        const miniMonitorActivo = {'true' if activar_mini_monitor else 'false'};
+        let miraBloqueada = localStorage.getItem('evil_lock') === 'true';
         // ---------------------------------------------------------
         // MONITOR_ALPHA CON TAMAÑO PREDETERMINADO
         // ---------------------------------------------------------
@@ -349,13 +400,135 @@ if archivo_subido is not None:
 
             actualizarLupa();
         }}
-        function actualizarLupa() {{ lupaCtx.clearRect(0, 0, lupaCanvas.width, lupaCanvas.height); lupaCtx.imageSmoothingEnabled = false; let size = 300 / zoomFactor; lupaCtx.drawImage(canvas, mouseX - size/2, mouseY - size/2, size, size, 0, 0, 300, 300); }}
-        function actualizarPosicion(clientX, clientY) {{ if (miraBloqueada) return; const rect = canvas.getBoundingClientRect(); mouseX = (clientX - rect.left) * (canvas.width / rect.width); mouseY = (clientY - rect.top) * (canvas.height / rect.height); localStorage.setItem('evil_x', mouseX); localStorage.setItem('evil_y', mouseY); actualizarLupa(); }}
-        canvas.addEventListener('mousemove', function(e) {{ actualizarPosicion(e.clientX, e.clientY); }});
+        function actualizarLupa() {{
+            lupaCtx.clearRect(0, 0, lupaCanvas.width, lupaCanvas.height);
+            lupaCtx.imageSmoothingEnabled = false;
+
+            let size = 300 / zoomFactor;
+
+            lupaCtx.drawImage(
+                canvas,
+                mouseX - size / 2,
+                mouseY - size / 2,
+                size,
+                size,
+                0,
+                0,
+                300,
+                300
+            );
+        }}
+
+        function actualizarMiniMonitor(clientX, clientY) {{
+            if (!miniMonitorActivo) return;
+
+            const rect = canvas.getBoundingClientRect();
+
+            // Coordenadas del puntero dentro del monitor
+            const localX = clientX - rect.left;
+            const localY = clientY - rect.top;
+
+            // El mini monitor sigue el puntero visualmente
+            miniMonitor.style.left = `${{localX}}px`;
+            miniMonitor.style.top = `${{localY}}px`;
+
+            // Convertir coordenadas CSS a coordenadas reales del canvas
+            const canvasX = localX * (canvas.width / rect.width);
+            const canvasY = localY * (canvas.height / rect.height);
+
+            // Cuanto mayor sea el factor, mayor será el zoom
+            const size = 220 / miniZoomFactor;
+
+            miniCtx.clearRect(0, 0, miniMonitor.width, miniMonitor.height);
+            miniCtx.fillStyle = "#000";
+            miniCtx.fillRect(0, 0, miniMonitor.width, miniMonitor.height);
+
+            miniCtx.imageSmoothingEnabled = false;
+
+            miniCtx.drawImage(
+                canvas,
+                canvasX - size / 2,
+                canvasY - size / 2,
+                size,
+                size,
+                0,
+                0,
+                miniMonitor.width,
+                miniMonitor.height
+            );
+
+            // Retícula central
+            const cx = miniMonitor.width / 2;
+            const cy = miniMonitor.height / 2;
+
+            miniCtx.strokeStyle = "#ff2222";
+            miniCtx.lineWidth = 1;
+
+            miniCtx.beginPath();
+            miniCtx.moveTo(cx - 14, cy);
+            miniCtx.lineTo(cx + 14, cy);
+            miniCtx.moveTo(cx, cy - 14);
+            miniCtx.lineTo(cx, cy + 14);
+            miniCtx.stroke();
+        }}
+
+        function actualizarPosicion(clientX, clientY) {{
+            if (miraBloqueada) return;
+
+            const rect = canvas.getBoundingClientRect();
+
+            mouseX = (clientX - rect.left) * (canvas.width / rect.width);
+            mouseY = (clientY - rect.top) * (canvas.height / rect.height);
+
+            localStorage.setItem('evil_x', mouseX);
+            localStorage.setItem('evil_y', mouseY);
+
+            actualizarLupa();
+            actualizarMiniMonitor(clientX, clientY);
+        }}
+        canvas.addEventListener('mousemove', function(e) {{
+            // El mini monitor sigue el puntero incluso cuando la lupa grande
+            // tiene sus coordenadas fijadas.
+            actualizarMiniMonitor(e.clientX, e.clientY);
+
+            if (!miraBloqueada) {{
+                actualizarPosicion(e.clientX, e.clientY);
+            }}
+        }});
         canvas.addEventListener('click', function(e) {{ miraBloqueada = !miraBloqueada; localStorage.setItem('evil_lock', miraBloqueada); if (miraBloqueada) {{ txtInstrucciones.innerHTML = "🔒 COORDENADAS FIJADAS // Objetivo inmóvil. Presiona el botón rojo de captura abajo."; txtInstrucciones.style.color = "#ff2222"; }} else {{ txtInstrucciones.innerHTML = "🟢 ESCANEO ACTIVO // Haz un clic en la foto para FIJAR las coordenadas de la lupa."; txtInstrucciones.style.color = "#00ff66"; const rect = canvas.getBoundingClientRect(); mouseX = (e.clientX - rect.left) * (canvas.width / rect.width); mouseY = (e.clientY - rect.top) * (canvas.height / rect.height); localStorage.setItem('evil_x', mouseX); localStorage.setItem('evil_y', mouseY); actualizarLupa(); }} }});
         canvas.addEventListener('wheel', function(e) {{ e.preventDefault(); if (e.deltaY < 0) zoomFactor += 0.5; else zoomFactor -= 0.5; zoomFactor = Math.max(1.5, Math.min(10.0, zoomFactor)); actualizarLupa(); }});
-        canvas.addEventListener('touchmove', function(e) {{ if(e.touches.length == 1 && !miraBloqueada) {{ e.preventDefault(); actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); }} }}, {{ passive: false }});
-        canvas.addEventListener('touchstart', function(e) {{ if(e.touches.length == 1) {{ actualizarPosicion(e.touches[0].clientX, e.touches[0].clientY); }} }});
+        canvas.addEventListener('touchmove', function(e) {{
+            if (e.touches.length == 1) {{
+                e.preventDefault();
+
+                actualizarMiniMonitor(
+                    e.touches[0].clientX,
+                    e.touches[0].clientY
+                );
+
+                if (!miraBloqueada) {{
+                    actualizarPosicion(
+                        e.touches[0].clientX,
+                        e.touches[0].clientY
+                    );
+                }}
+            }}
+        }}, {{ passive: false }});
+        canvas.addEventListener('touchstart', function(e) {{
+            if (e.touches.length == 1) {{
+                actualizarMiniMonitor(
+                    e.touches[0].clientX,
+                    e.touches[0].clientY
+                );
+
+                if (!miraBloqueada) {{
+                    actualizarPosicion(
+                        e.touches[0].clientX,
+                        e.touches[0].clientY
+                    );
+                }}
+            }}
+        }});
         function descargarLupaLocal() {{ const link = document.createElement('a'); link.download = 'evil_evidence_lupa.png'; link.href = lupaCanvas.toDataURL("image/png"); link.click(); }}
     </script>
     """
