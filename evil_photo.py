@@ -171,6 +171,88 @@ if st.sidebar.button(
     st.rerun()
 
 st.sidebar.caption("◀ EFECTO NEGATIVO   |   0 = ORIGINAL   |   EFECTO POSITIVO ▶")
+# Doble clic / doble tap = regresar el slider a 0.
+# Se ejecuta en el DOM padre porque Streamlit renderiza los widgets fuera
+# del HTML inyectado por st.markdown.
+st.markdown(
+    """
+    <script>
+    (function () {
+        const setupSliderReset = () => {
+            const doc = window.parent.document;
+
+            const resetToZero = (input) => {
+                const min = Number(input.min);
+                const max = Number(input.max);
+
+                // Solo aplicamos el gesto a sliders cuyo rango contiene 0.
+                if (Number.isFinite(min) && Number.isFinite(max) &&
+                    min <= 0 && max >= 0) {
+
+                    input.value = 0;
+
+                    // Notifica a React/Streamlit como si el usuario hubiera
+                    // movido manualmente el deslizador.
+                    input.dispatchEvent(
+                        new Event("input", { bubbles: true })
+                    );
+                    input.dispatchEvent(
+                        new Event("change", { bubbles: true })
+                    );
+                }
+            };
+
+            // Evita registrar el mismo listener varias veces tras st.rerun().
+            if (doc.__evilPhotoSliderResetInstalled) return;
+            doc.__evilPhotoSliderResetInstalled = true;
+
+            // Doble clic con mouse.
+            doc.addEventListener("dblclick", (event) => {
+                const input = event.target.closest('input[type="range"]');
+                if (!input) return;
+
+                event.preventDefault();
+                resetToZero(input);
+            }, true);
+
+            // Doble tap en pantallas táctiles.
+            let ultimoTap = 0;
+            let ultimoSlider = null;
+
+            doc.addEventListener("touchend", (event) => {
+                const input = event.target.closest('input[type="range"]');
+                if (!input) return;
+
+                const ahora = Date.now();
+                const esDobleTap =
+                    ultimoSlider === input &&
+                    (ahora - ultimoTap) < 350;
+
+                if (esDobleTap) {
+                    event.preventDefault();
+                    resetToZero(input);
+                    ultimoTap = 0;
+                    ultimoSlider = null;
+                } else {
+                    ultimoTap = ahora;
+                    ultimoSlider = input;
+                }
+            }, { capture: true, passive: false });
+        };
+
+        // Streamlit puede reconstruir el DOM después de cada interacción.
+        setupSliderReset();
+
+        // Reintenta brevemente después de la carga para asegurar que el
+        // DOM de los widgets ya exista.
+        setTimeout(setupSliderReset, 250);
+        setTimeout(setupSliderReset, 1000);
+    })();
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
 
 st.sidebar.markdown("<p style='color:#00ff66; font-size:12px; font-weight:bold;'>🎛️ FILTROS DE LUZ INTELIGENTES</p>", unsafe_allow_html=True)
 
@@ -1157,7 +1239,11 @@ if archivo_subido is not None:
         if activar_emf:
             nivel_emf = min(100.0, max(5.0, frecuencia_ruido_base * 2.2))
             st.markdown(f"<p style='color:#ccc; font-size:12px; font-family:monospace; margin:0 0 5px 0;'>📻 CANAL ELECTROMAGNÉTICO (EMF): <b>{round(nivel_emf, 2)} mG (milliGauss)</b></p>", unsafe_allow_html=True)
-            st.progress(min(1.0, nivel_emf / 100.0), text="Campos de Frecuencia Fantasma Detectados")
+            progreso_emf = max(0.0, min(1.0, float(nivel_emf) / 100.0))
+            st.progress(
+                progreso_emf,
+                text="Campos de Frecuencia Fantasma Detectados"
+            )
         st.markdown('</div>', unsafe_allow_html=True)
 
     # --- RECONOCIMIENTO BIOMÉTRICO ---
@@ -1174,9 +1260,30 @@ if archivo_subido is not None:
 
     st.markdown('<div class="panel-forense" style="border-left: 4px solid #fff; background-color: #0f1115; border: 1px solid #1f242e; padding: 15px; border-radius: 4px;">', unsafe_allow_html=True)
     st.markdown("<p style='color:#fff; font-size:12px; font-weight:bold; margin-top:0; font-family:monospace;'>📊 TELEMETRÍA DE COMPOSICIÓN FOTOGRÁFICA</p>", unsafe_allow_html=True)
-    st.progress(min(1.0, (brillo + 100) / 200), text=f"Alteración Térmica Lumínica: {brillo}%")
-    st.progress(min(1.0, (contraste - 1.0) / 2.0), text=f"Densidad de Pixeles Espectrales: {round(contraste,1)}x")
-    st.progress(0.98, text="Probabilidad de Entidad / Anomalía Espectral Fotográfica")
+    # Streamlit exige que st.progress() reciba únicamente valores
+    # dentro del rango 0.0 a 1.0.
+    #
+    # Los controles ahora están centrados en 0, por eso normalizamos:
+    # -100  -> 0.0
+    #    0  -> 0.5
+    # +100  -> 1.0
+    progreso_brillo = max(0.0, min(1.0, (float(brillo) + 100.0) / 200.0))
+    progreso_contraste = max(0.0, min(1.0, (float(contraste) + 100.0) / 200.0))
+
+    st.progress(
+        progreso_brillo,
+        text=f"Alteración Térmica Lumínica: {brillo}%"
+    )
+
+    st.progress(
+        progreso_contraste,
+        text=f"Densidad de Píxeles Espectrales: {contraste}%"
+    )
+
+    st.progress(
+        0.98,
+        text="Probabilidad de Entidad / Anomalía Espectral Fotográfica"
+    )
     st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.markdown("""<div class="panel-forense" style="border-left: 4px solid #ffaa00; background-color: #0f1115; text-align: center;"><p style="color: #ffaa00; font-size: 13px; font-weight: bold; margin: 0; font-family: monospace;">🔮 SISTEMA EN ESPERA // Por favor, introduce una fotografía en el cargador superior para iniciar el escaneo espectral.</p></div>""", unsafe_allow_html=True)
