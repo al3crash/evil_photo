@@ -132,61 +132,118 @@ st.components.v1.html(html_HUD_info, height=125, scrolling=False)
 archivo_subido = st.file_uploader("☣️ INTRODUCIR ARCHIVO DE EVIDENCIA FOTOGRÁFICA:", type=["jpg", "jpeg", "png"], key="photo_core_uploader")
 st.markdown('<div style="margin-bottom: 25px;"></div>', unsafe_allow_html=True)
 # --- PANEL LATERAL DE SELECCIÓN (SIDEBAR) ---
+# Todos los sliders están centrados en 0:
+#   negativo <---- 0 ----> positivo
+# El valor 0 significa "sin efecto / imagen original".
+# El botón RESET devuelve todos los efectos a su estado neutro.
+
+EFFECT_SLIDER_KEYS = [
+    "fx_brillo", "fx_contraste", "fx_negativo", "fx_umbral",
+    "fx_remaster", "fx_nocturna", "fx_termica", "fx_ela",
+    "fx_ruido", "fx_gradiente", "fx_relieve", "fx_ir",
+    "fx_canny", "fx_flir", "fx_orbes", "fx_lga",
+    "fx_retinex", "fx_prnu"
+]
+
+EFFECT_CHECKBOX_KEYS = [
+    "ck_brillo", "ck_contraste", "ck_negativo", "ck_umbral",
+    "ck_remaster", "ck_nocturna", "ck_termica", "ck_ela",
+    "ck_ruido", "ck_gradiente", "ck_relieve", "ck_ir",
+    "ck_canny", "ck_flir", "ck_orbes", "ck_emf",
+    "ck_lga", "ck_retinex", "ck_prnu", "ck_biometria"
+]
+
+def resetear_efectos():
+    for key in EFFECT_SLIDER_KEYS:
+        st.session_state[key] = 0
+    for key in EFFECT_CHECKBOX_KEYS:
+        st.session_state[key] = False
+
 st.sidebar.header("🎛️ PANEL DE CONTROL FOTOGRÁFICO")
+
+if st.sidebar.button(
+    "↺ RESET TOTAL DE EFECTOS",
+    key="reset_total_efectos",
+    use_container_width=True,
+    help="Desactiva todos los efectos y centra todos los sliders en 0."
+):
+    resetear_efectos()
+    st.rerun()
+
+st.sidebar.caption("◀ EFECTO NEGATIVO   |   0 = ORIGINAL   |   EFECTO POSITIVO ▶")
+
 st.sidebar.markdown("<p style='color:#00ff66; font-size:12px; font-weight:bold;'>🎛️ FILTROS DE LUZ INTELIGENTES</p>", unsafe_allow_html=True)
 
-activar_brillo = st.sidebar.checkbox("☀️ Modulación de Brillo")
-brillo = st.sidebar.slider("Potencia de Exposición (Brillo)", -100, 100, 0) if activar_brillo else 0
+activar_brillo = st.sidebar.checkbox("☀️ Modulación de Brillo", key="ck_brillo")
+brillo = st.sidebar.slider("Potencia de Exposición", -100, 100, 0, key="fx_brillo") if activar_brillo else 0
 
-activar_contraste = st.sidebar.checkbox("🌓 Amplificación de Contraste")
-contraste = st.sidebar.slider("Ganancia de Contraste Dinámico", 1.0, 3.0, 1.0, 0.1) if activar_contraste else 1.0
+activar_contraste = st.sidebar.checkbox("🌓 Amplificación de Contraste", key="ck_contraste")
+contraste = st.sidebar.slider("Ganancia de Contraste", -100, 100, 0, key="fx_contraste") if activar_contraste else 0
 
-activar_negativo = st.sidebar.checkbox("👁️ Inversión de Espectro")
-negativo = st.sidebar.slider("Fusión de Negativo (%)", 0, 100, 0) if activar_negativo else 0
+activar_negativo = st.sidebar.checkbox("👁️ Inversión de Espectro", key="ck_negativo")
+negativo = st.sidebar.slider("Fusión de Negativo", -100, 100, 0, key="fx_negativo") if activar_negativo else 0
 
-activar_umbral = st.sidebar.checkbox("🏁 Umbralización Binaria")
-umbral_val = st.sidebar.slider("Umbral de Densidad Absoluto", 0, 255, 127) if activar_umbral else 127
+activar_umbral = st.sidebar.checkbox("🏁 Umbralización Binaria", key="ck_umbral")
+umbral_val = st.sidebar.slider("Intensidad de Umbral", -100, 100, 0, key="fx_umbral") if activar_umbral else 0
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("<p style='color:#00ff66; font-size:12px; font-weight:bold;'>🔍 MATRICES FORENSES REGULABLES</p>", unsafe_allow_html=True)
 
-activar_remaster = st.sidebar.checkbox("✨ Remasterización Espectral (IA Enhancer)")
-int_remaster = st.sidebar.slider("Potencia de Enfoque y Nitidez Cuántica", 1, 50, 15) if activar_remaster else 15
-activar_nocturna = st.sidebar.checkbox("🟢 Visión Nocturna (Fósforo Verde)")
-int_nocturna = st.sidebar.slider("Ganancia e Intensidad Verde", 10, 100, 100) if activar_nocturna else 100
-activar_termica = st.sidebar.checkbox("🔴 Visión Nocturna Térmica (Mapa de Calor)")
-int_termica = st.sidebar.slider("Fusión Térmica Termográfica", 10, 100, 100) if activar_termica else 100
-activar_ela = st.sidebar.checkbox("🔍 Análisis ELA (Falsificación Digital)")
-int_ela = st.sidebar.slider("Amplificación de Error Digital", 5, 50, 15) if activar_ela else 15
-activar_ruido = st.sidebar.checkbox("🌫️ Aislamiento de Ruido de Grano")
-int_ruido = st.sidebar.slider("Rango de Suavizado de Textura", 3, 25, 9, step=2) if activar_ruido else 9
-activar_gradiente = st.sidebar.checkbox("📊 Gradiente Vectorial Sobel (BGA)")
-int_gradiente = st.sidebar.slider("Ganancia de Sensor Térmico", 10, 100, 50) if activar_gradiente else 50
-activar_relieve = st.sidebar.checkbox("🧱 Activar Relieve Térmico (Emboss)")
-int_relieve = st.sidebar.slider("Profundidad de Relieve 3D", 1, 5, 1) if activar_relieve else 1
-activar_ir = st.sidebar.checkbox("🛰️ Espectrografía Infrarroja")
-int_ir = st.sidebar.slider("Sensibilidad Infrarroja Opaca", 0, 255, 0) if activar_ir else 0
-activar_canny = st.sidebar.checkbox("🕸️ Vectorización de Bordes Canny")
-int_canny = st.sidebar.slider("Umbral de Rigidez de Bordes", 10, 200, 50) if activar_canny else 50
+activar_remaster = st.sidebar.checkbox("✨ Remasterización Espectral (IA Enhancer)", key="ck_remaster")
+int_remaster = st.sidebar.slider("Potencia de Enfoque", -100, 100, 0, key="fx_remaster") if activar_remaster else 0
+
+activar_nocturna = st.sidebar.checkbox("🟢 Visión Nocturna (Fósforo Verde)", key="ck_nocturna")
+int_nocturna = st.sidebar.slider("Ganancia de Visión Nocturna", -100, 100, 0, key="fx_nocturna") if activar_nocturna else 0
+
+activar_termica = st.sidebar.checkbox("🔴 Visión Nocturna Térmica (Mapa de Calor)", key="ck_termica")
+int_termica = st.sidebar.slider("Fusión Térmica Termográfica", -100, 100, 0, key="fx_termica") if activar_termica else 0
+
+activar_ela = st.sidebar.checkbox("🔍 Análisis ELA (Falsificación Digital)", key="ck_ela")
+int_ela = st.sidebar.slider("Amplificación de Error Digital", -100, 100, 0, key="fx_ela") if activar_ela else 0
+
+activar_ruido = st.sidebar.checkbox("🌫️ Aislamiento de Ruido de Grano", key="ck_ruido")
+int_ruido = st.sidebar.slider("Intensidad de Tratamiento de Ruido", -100, 100, 0, key="fx_ruido") if activar_ruido else 0
+
+activar_gradiente = st.sidebar.checkbox("📊 Gradiente Vectorial Sobel (BGA)", key="ck_gradiente")
+int_gradiente = st.sidebar.slider("Ganancia de Sensor", -100, 100, 0, key="fx_gradiente") if activar_gradiente else 0
+
+activar_relieve = st.sidebar.checkbox("🧱 Activar Relieve Térmico (Emboss)", key="ck_relieve")
+int_relieve = st.sidebar.slider("Profundidad de Relieve", -100, 100, 0, key="fx_relieve") if activar_relieve else 0
+
+activar_ir = st.sidebar.checkbox("🛰️ Espectrografía Infrarroja", key="ck_ir")
+int_ir = st.sidebar.slider("Sensibilidad Infrarroja", -100, 100, 0, key="fx_ir") if activar_ir else 0
+
+activar_canny = st.sidebar.checkbox("🕸️ Vectorización de Bordes Canny", key="ck_canny")
+int_canny = st.sidebar.slider("Intensidad de Bordes Canny", -100, 100, 0, key="fx_canny") if activar_canny else 0
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("<p style='color:#ff2222; font-size:12px; font-weight:bold;'>⚡ TELEMETRÍA PARANORMAL EN VIVO</p>", unsafe_allow_html=True)
-activar_flir = st.sidebar.checkbox("⛈️ Escáner de Temperatura Espectral (FLIR)")
-int_flir = st.sidebar.slider("Sensibilidad a Puntos Fríos", 10, 100, 80) if activar_flir else 80
-activar_orbes = st.sidebar.checkbox("🌌 Detector de Orbes y Polvo Espectral")
-int_orbes = st.sidebar.slider("Umbral de Captura Lumínica", 10, 255, 230) if activar_orbes else 230
-activar_emf = st.sidebar.checkbox("📻 Analizador de Frecuencia Fantasma (EMF)")
+
+activar_flir = st.sidebar.checkbox("⛈️ Escáner de Temperatura Espectral (FLIR)", key="ck_flir")
+int_flir = st.sidebar.slider("Sensibilidad a Puntos Fríos", -100, 100, 0, key="fx_flir") if activar_flir else 0
+
+activar_orbes = st.sidebar.checkbox("🌌 Detector de Orbes y Polvo Espectral", key="ck_orbes")
+int_orbes = st.sidebar.slider("Sensibilidad del Detector de Orbes", -100, 100, 0, key="fx_orbes") if activar_orbes else 0
+
+activar_emf = st.sidebar.checkbox("📻 Analizador de Frecuencia Fantasma (EMF)", key="ck_emf")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("<p style='color:#00ffff; font-size:12px; font-weight:bold;'>🔬 PERITAJE DE AUTENTICIDAD DIGITAL</p>", unsafe_allow_html=True)
-activar_lga = st.sidebar.checkbox("📉 Gradiente de Luminancia (Detección de Montajes)")
-activar_retinex = st.sidebar.checkbox("👁️‍🗨️ Realce de Sombras Densas (CLAHE Forense)")
-int_retinex = st.sidebar.slider("Ganancia de Apertura de Sombras", 1, 10, 3) if activar_retinex else 3
-activar_prnu = st.sidebar.checkbox("🎚️ Uniformidad de Ruido de Sensor")
+
+activar_lga = st.sidebar.checkbox("📉 Gradiente de Luminancia (Detección de Montajes)", key="ck_lga")
+int_lga = st.sidebar.slider("Intensidad de Gradiente LGA", -100, 100, 0, key="fx_lga") if activar_lga else 0
+
+activar_retinex = st.sidebar.checkbox("👁️‍🗨️ Realce de Sombras Densas (CLAHE Forense)", key="ck_retinex")
+int_retinex = st.sidebar.slider("Ganancia de Apertura de Sombras", -100, 100, 0, key="fx_retinex") if activar_retinex else 0
+
+activar_prnu = st.sidebar.checkbox("🎚️ Uniformidad de Ruido de Sensor", key="ck_prnu")
+int_prnu = st.sidebar.slider("Intensidad PRNU", -100, 100, 0, key="fx_prnu") if activar_prnu else 0
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("<p style='color:#ffaa00; font-size:12px; font-weight:bold;'>🔮 OPCIONES EXTRAS FORENSES</p>", unsafe_allow_html=True)
-activar_biometria = st.sidebar.checkbox("🧬 Escáner Facial por Red Neuronal (DNN IA)")
+
+activar_biometria = st.sidebar.checkbox("🧬 Escáner Facial por Red Neuronal (DNN IA)", key="ck_biometria")
+
 if archivo_subido is not None:
     # --- PIPELINE DE PROCESAMIENTO DE IMAGEN ORIGINAL ---
     file_bytes = np.asarray(bytearray(archivo_subido.read()), dtype=np.uint8)
@@ -203,77 +260,454 @@ if archivo_subido is not None:
     frecuencia_ruido_base = 0.0
     biometria_fallida = False
     
-    if activar_retinex:
-        lab = cv2.cvtColor(img_cv, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=float(int_retinex), tileGridSize=(8, 8))
-        img_cv = cv2.cvtColor(cv2.merge((clahe.apply(l), a, b)), cv2.COLOR_LAB2BGR)
-        
-    if activar_lga:
-        log_lga = np.log1p(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY).astype(np.float32))
-        cv2.normalize(log_lga, log_lga, 0, 255, cv2.NORM_MINMAX)
-        img_cv = cv2.applyColorMap(log_lga.astype(np.uint8), cv2.COLORMAP_BONE)
+    # ---------------------------------------------------------
+    # PIPELINE DE EFECTOS
+    # 0 SIEMPRE ES EL ESTADO NEUTRO / FOTO SIN MODIFICAR.
+    # Los valores positivos y negativos representan direcciones
+    # opuestas o variantes del mismo análisis.
+    # ---------------------------------------------------------
 
-    if activar_prnu:
-        ruido_espectro = cv2.absdiff(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), cv2.GaussianBlur(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), (5, 5), 0))
-        cv2.normalize(ruido_espectro, ruido_espectro, 0, 255, cv2.NORM_MINMAX)
-        img_cv = cv2.cvtColor(ruido_espectro, cv2.COLOR_GRAY2BGR)
+    def mezclar(base, efecto, intensidad):
+        """Mezcla segura: 0 = base, +/-100 = efecto completo."""
+        alpha = min(1.0, abs(float(intensidad)) / 100.0)
+        return cv2.addWeighted(base, 1.0 - alpha, efecto, alpha, 0)
+
+    if activar_retinex and int_retinex != 0:
+        base = img_cv.copy()
+        lab = cv2.cvtColor(base, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clip = 1.0 + abs(int_retinex) * 0.06
+        clahe = cv2.createCLAHE(clipLimit=float(clip), tileGridSize=(8, 8))
+        efecto = cv2.cvtColor(
+            cv2.merge((clahe.apply(l), a, b)),
+            cv2.COLOR_LAB2BGR
+        )
+        if int_retinex < 0:
+            efecto = cv2.convertScaleAbs(efecto, alpha=0.82, beta=-8)
+        img_cv = mezclar(base, efecto, int_retinex)
+
+    if activar_lga and int_lga != 0:
+        base = img_cv.copy()
+        log_lga = np.log1p(
+            cv2.cvtColor(base, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        )
+        cv2.normalize(log_lga, log_lga, 0, 255, cv2.NORM_MINMAX)
+        mapa = cv2.applyColorMap(log_lga.astype(np.uint8), cv2.COLORMAP_BONE)
+        if int_lga < 0:
+            mapa = cv2.bitwise_not(mapa)
+        img_cv = mezclar(base, mapa, int_lga)
+
+    if activar_prnu and int_prnu != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+        ruido_espectro = cv2.absdiff(
+            gris,
+            cv2.GaussianBlur(gris, (5, 5), 0)
+        )
+        cv2.normalize(
+            ruido_espectro,
+            ruido_espectro,
+            0,
+            255,
+            cv2.NORM_MINMAX
+        )
+        mapa = cv2.cvtColor(ruido_espectro, cv2.COLOR_GRAY2BGR)
+        if int_prnu < 0:
+            mapa = cv2.bitwise_not(mapa)
+        img_cv = mezclar(base, mapa, int_prnu)
 
     if activar_biometria:
         try:
-            model_proto, model_weight = "deploy.prototxt", "res10_300x300_ssd_iter_140000.caffemodel"
-            if not os.path.exists(model_proto): urllib.request.urlretrieve("https://githubusercontent.com", model_proto)
-            if not os.path.exists(model_weight): urllib.request.urlretrieve("https://githubusercontent.com", model_weight)
-            net = cv2.dnn.readNetFromCaffe(model_proto, model_weight)
-            net.setInput(cv2.dnn.blobFromImage(cv2.resize(img_cv, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0)))
-            detecciones = net.forward()
-            estados_animo = ["ANALÍTICO // ALERTA", "NEUTRO SPECTRUM", "EMOCIÓN DETECTADA", "PÁNICO SUSPENDIDO", "FELICIDAD ESPECTRAL"]
-            generos = ["MASCULINO (VECTORES)", "FEMENINO (VECTORES)"]
-            for i in range(detecciones.shape[2]):
-                if detecciones[0, 0, i, 2] > 0.5:
-                    box = detecciones[0, 0, i, 3:7] * np.array([w_original, h_original, w_original, h_original])
-                    (x1, y1, x2, y2) = box.astype("int")
-                    x1, y1, x2, y2 = max(0, x1), max(0, y1), min(w_original, x2), min(h_original, y2)
-                    cv2.rectangle(img_cv, (x1, y1), (x2, y2), (0, 255, 102), 3)
-                    semilla_id = int((x1 * y1) % 100)
-                    rostros_detectados.append({"id": len(rostros_detectados) + 1, "edad": int(max(18, min(78, (semilla_id % 38) + 19))), "genero": generos[x1 % len(generos)], "animo": estados_animo[y1 % len(generos)], "confianza": round(float(detecciones[0, 0, i, 2])*100, 1)})
-        except Exception: biometria_fallida = True
+            model_proto = "deploy.prototxt"
+            model_weight = "res10_300x300_ssd_iter_140000.caffemodel"
 
-    if activar_flir: img_cv = cv2.addWeighted(img_cv, 1.0 - (int_flir/100.0), cv2.applyColorMap(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_JET), int_flir/100.0, 0)
-    if activar_orbes:
-        _, umb_o = cv2.threshold(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), int_orbes, 255, cv2.THRESH_BINARY)
-        contornos, _ = cv2.findContours(umb_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # Se conserva la lógica original. Si los modelos no existen
+            # o no se pueden cargar, la app sigue funcionando.
+            if os.path.exists(model_proto) and os.path.exists(model_weight):
+                net = cv2.dnn.readNetFromCaffe(model_proto, model_weight)
+                net.setInput(
+                    cv2.dnn.blobFromImage(
+                        cv2.resize(img_cv, (300, 300)),
+                        1.0,
+                        (300, 300),
+                        (104.0, 177.0, 123.0)
+                    )
+                )
+                detecciones = net.forward()
+                estados_animo = [
+                    "ANALÍTICO // ALERTA",
+                    "NEUTRO SPECTRUM",
+                    "EMOCIÓN DETECTADA",
+                    "PÁNICO SUSPENDIDO",
+                    "FELICIDAD ESPECTRAL"
+                ]
+                generos = ["MASCULINO (VECTORES)", "FEMENINO (VECTORES)"]
+
+                for i in range(detecciones.shape[2]):
+                    if detecciones[0, 0, i, 2] > 0.5:
+                        box = detecciones[0, 0, i, 3:7] * np.array(
+                            [w_original, h_original, w_original, h_original]
+                        )
+                        (x1, y1, x2, y2) = box.astype("int")
+                        x1 = max(0, x1)
+                        y1 = max(0, y1)
+                        x2 = min(w_original, x2)
+                        y2 = min(h_original, y2)
+
+                        cv2.rectangle(
+                            img_cv,
+                            (x1, y1),
+                            (x2, y2),
+                            (0, 255, 102),
+                            3
+                        )
+
+                        semilla_id = int((x1 * max(1, y1)) % 100)
+                        rostros_detectados.append({
+                            "id": len(rostros_detectados) + 1,
+                            "edad": int(max(18, min(78, (semilla_id % 38) + 19))),
+                            "genero": generos[x1 % len(generos)],
+                            "animo": estados_animo[y1 % len(estados_animo)],
+                            "confianza": round(
+                                float(detecciones[0, 0, i, 2]) * 100,
+                                1
+                            )
+                        })
+            else:
+                biometria_fallida = True
+        except Exception:
+            biometria_fallida = True
+
+    # -------------------- FLIR --------------------
+    if activar_flir and int_flir != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+        colormap = cv2.COLORMAP_JET if int_flir > 0 else cv2.COLORMAP_BONE
+        mapa = cv2.applyColorMap(gris, colormap)
+        if int_flir < 0:
+            mapa = cv2.bitwise_not(mapa)
+        img_cv = mezclar(base, mapa, int_flir)
+
+    # -------------------- ORBES --------------------
+    if activar_orbes and int_orbes != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+
+        # Mayor |intensidad| = mayor sensibilidad.
+        umbral_orbe = int(
+            np.clip(245 - abs(int_orbes) * 1.55, 70, 245)
+        )
+
+        # Umbral + limpieza para evitar pequeños píxeles aislados.
+        _, mascara = cv2.threshold(
+            gris,
+            umbral_orbe,
+            255,
+            cv2.THRESH_BINARY
+        )
+        mascara = cv2.morphologyEx(
+            mascara,
+            cv2.MORPH_OPEN,
+            np.ones((3, 3), np.uint8)
+        )
+
+        contornos, _ = cv2.findContours(
+            mascara,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE
+        )
+
         for c in contornos:
-            (ox, oy), radio = cv2.minEnclosingCircle(c)
-            centro, radio = (int(ox), int(oy)), int(radio)
-            if 3 < radio < 35:
-                orbes_detectados += 1
-                cv2.circle(img_cv, centro, radio + 4, (0, 230, 255), 2)
-                cv2.putText(img_cv, f"ORBE #{orbes_detectados}", (centro + 10, centro), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 230, 255), 1)
-    if activar_emf: frecuencia_ruido_base = float(np.std(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)))
-    if activar_remaster:
-        img_cv = cv2.resize(img_cv, (w_original * 2, h_original * 2), interpolation=cv2.INTER_CUBIC)
-        h_original, w_original = img_cv.shape[:2]
-        img_cv = cv2.filter2D(img_cv, -1, np.array([[0, -1, 0], [-1, 4 + (int_remaster / 10.0), -1], [0, -1, 0]]))
+            area = cv2.contourArea(c)
 
-    img_cv = cv2.convertScaleAbs(img_cv, alpha=contraste, beta=brillo)
-    if negativo > 0: img_cv = cv2.addWeighted(img_cv, 1 - (negativo/100), cv2.bitwise_not(img_cv), negativo/100, 0)
-    if activar_umbral:
-        _, t_img = cv2.threshold(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), umbral_val, 255, cv2.THRESH_BINARY)
-        img_cv = cv2.cvtColor(t_img, cv2.COLOR_GRAY2BGR)
-    if activar_nocturna:
-        gris = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        img_cv = cv2.addWeighted(img_cv, 1 - (int_nocturna/100), cv2.merge([np.zeros_like(gris), cv2.convertScaleAbs(gris, alpha=1.2, beta=20), np.zeros_like(gris)]), int_nocturna/100, 0)
-    if activar_ruido: img_cv = cv2.medianBlur(img_cv, int_ruido if int_ruido % 2 != 0 else int_ruido + 1)
-    if activar_ela:
-        _, enc = cv2.imencode('.jpg', img_cv, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        img_cv = cv2.absdiff(img_cv, cv2.imdecode(enc, 1)) * int_ela
-    if activar_gradiente:
-        gris = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        img_cv = cv2.addWeighted(img_cv, 1 - (int_gradiente/100), cv2.applyColorMap(cv2.addWeighted(cv2.convertScaleAbs(cv2.Sobel(gris, cv2.CV_16S, 1, 0, ksize=3)), 0.5, cv2.convertScaleAbs(cv2.Sobel(gris, cv2.CV_16S, 0, 1, ksize=3)), 0.5, 0), cv2.COLORMAP_HOT), int_gradiente/100, 0)
-    if activar_relieve: img_cv = cv2.filter2D(img_cv, -1, np.array([[-2, -1, 0], [-1, 1, 1]]) * int_relieve) + 128
-    if activar_ir: img_cv = cv2.applyColorMap(cv2.add(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), int_ir) if int_ir > 0 else cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_BONE)
-    if activar_canny: img_cv = cv2.cvtColor(cv2.Canny(img_cv, int_canny, int_canny * 3), cv2.COLOR_GRAY2BGR)
+            if area < 8 or area > 5000:
+                continue
+
+            perimetro = cv2.arcLength(c, True)
+            if perimetro <= 0:
+                continue
+
+            circularidad = 4.0 * np.pi * area / (
+                perimetro * perimetro
+            )
+
+            (ox, oy), radio = cv2.minEnclosingCircle(c)
+
+            # Filtra formas demasiado alargadas.
+            if not (2.0 <= radio <= 80.0):
+                continue
+
+            if circularidad < 0.55:
+                continue
+
+            centro = (int(round(ox)), int(round(oy)))
+            radio_int = max(2, int(round(radio)))
+
+            orbes_detectados += 1
+
+            color_orbe = (
+                (0, 230, 255)
+                if int_orbes > 0
+                else (255, 120, 0)
+            )
+
+            cv2.circle(
+                img_cv,
+                centro,
+                radio_int + 4,
+                color_orbe,
+                2
+            )
+
+            # CORRECCIÓN DEL ERROR ORIGINAL:
+            # antes se pasaba (centro + 10, centro), mezclando una tupla
+            # con un entero y provocando el TypeError.
+            texto_pos = (
+                min(
+                    centro[0] + radio_int + 8,
+                    max(0, img_cv.shape[1] - 120)
+                ),
+                max(16, centro[1] - radio_int - 8)
+            )
+
+            cv2.putText(
+                img_cv,
+                f"ORBE #{orbes_detectados}",
+                texto_pos,
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.42,
+                color_orbe,
+                1,
+                cv2.LINE_AA
+            )
+
+        # Si se detectaron orbes, el overlay ya es el resultado.
+        # Si no hubo detecciones, la imagen queda intacta.
+
+    # -------------------- EMF --------------------
+    if activar_emf:
+        frecuencia_ruido_base = float(
+            np.std(cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY))
+        )
+
+    # -------------------- REMASTER --------------------
+    if activar_remaster and int_remaster != 0:
+        base = img_cv.copy()
+        fuerza = abs(int_remaster) / 100.0
+        suavizada = cv2.GaussianBlur(base, (0, 0), 3)
+        sharpen = cv2.addWeighted(
+            base,
+            1.0 + 2.2 * fuerza,
+            suavizada,
+            -2.2 * fuerza,
+            0
+        )
+        if int_remaster < 0:
+            sharpen = cv2.GaussianBlur(base, (0, 0), 1.0 + 3.0 * fuerza)
+        img_cv = mezclar(base, sharpen, int_remaster)
+
+    # -------------------- BRILLO / CONTRASTE --------------------
+    if activar_brillo and brillo != 0:
+        img_cv = cv2.convertScaleAbs(img_cv, alpha=1.0, beta=brillo)
+
+    if activar_contraste and contraste != 0:
+        base = img_cv.copy()
+        alpha = 1.0 + (contraste / 100.0)
+        alpha = max(0.15, alpha)
+        img_cv = cv2.convertScaleAbs(base, alpha=alpha, beta=0)
+
+    # -------------------- NEGATIVO --------------------
+    if activar_negativo and negativo != 0:
+        base = img_cv.copy()
+        invertida = cv2.bitwise_not(base)
+        if negativo < 0:
+            invertida = cv2.applyColorMap(
+                cv2.cvtColor(invertida, cv2.COLOR_BGR2GRAY),
+                cv2.COLORMAP_BONE
+            )
+        img_cv = mezclar(base, invertida, negativo)
+
+    # -------------------- UMBRAL --------------------
+    if activar_umbral and umbral_val != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+        threshold = int(
+            np.clip(127 + umbral_val * 1.2, 5, 250)
+        )
+        _, t_img = cv2.threshold(
+            gris,
+            threshold,
+            255,
+            cv2.THRESH_BINARY
+        )
+        efecto = cv2.cvtColor(t_img, cv2.COLOR_GRAY2BGR)
+        img_cv = mezclar(base, efecto, umbral_val)
+
+    # -------------------- VISIÓN NOCTURNA --------------------
+    if activar_nocturna and int_nocturna != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+
+        if int_nocturna > 0:
+            efecto = cv2.merge([
+                np.zeros_like(gris),
+                cv2.convertScaleAbs(gris, alpha=1.25, beta=18),
+                np.zeros_like(gris)
+            ])
+        else:
+            efecto = cv2.merge([
+                cv2.convertScaleAbs(gris, alpha=1.20, beta=12),
+                np.zeros_like(gris),
+                cv2.convertScaleAbs(gris, alpha=0.75)
+            ])
+
+        img_cv = mezclar(base, efecto, int_nocturna)
+
+    # -------------------- VISIÓN TÉRMICA --------------------
+    # CORRECCIÓN: antes existía el checkbox y el slider,
+    # pero el pipeline nunca aplicaba el mapa térmico.
+    if activar_termica and int_termica != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+
+        if int_termica > 0:
+            # Mapa de calor clásico.
+            termica = cv2.applyColorMap(
+                gris,
+                cv2.COLORMAP_JET
+            )
+        else:
+            # Variante térmica fría para el lado negativo.
+            termica = cv2.applyColorMap(
+                gris,
+                cv2.COLORMAP_BONE
+            )
+            termica = cv2.bitwise_not(termica)
+
+        img_cv = mezclar(base, termica, int_termica)
+
+    # -------------------- RUIDO --------------------
+    if activar_ruido and int_ruido != 0:
+        base = img_cv.copy()
+        fuerza = abs(int_ruido) / 100.0
+
+        if int_ruido > 0:
+            efecto = cv2.bilateralFilter(
+                base,
+                9,
+                35 + int(80 * fuerza),
+                35 + int(80 * fuerza)
+            )
+        else:
+            blur = cv2.GaussianBlur(base, (0, 0), 1.2)
+            efecto = cv2.addWeighted(
+                base,
+                1.0 + fuerza,
+                blur,
+                -fuerza,
+                0
+            )
+
+        img_cv = mezclar(base, efecto, int_ruido)
+
+    # -------------------- ELA --------------------
+    if activar_ela and int_ela != 0:
+        base = img_cv.copy()
+        calidad = int(np.clip(
+            98 - abs(int_ela) * 0.55,
+            35,
+            98
+        ))
+        _, enc = cv2.imencode(
+            ".jpg",
+            base,
+            [cv2.IMWRITE_JPEG_QUALITY, calidad]
+        )
+        recomprimida = cv2.imdecode(enc, cv2.IMREAD_COLOR)
+        diferencia = cv2.absdiff(base, recomprimida)
+        diferencia = cv2.normalize(
+            diferencia,
+            None,
+            0,
+            255,
+            cv2.NORM_MINMAX
+        )
+        if int_ela < 0:
+            diferencia = cv2.bitwise_not(diferencia)
+        img_cv = mezclar(base, diferencia, int_ela)
+
+    # -------------------- GRADIENTE --------------------
+    if activar_gradiente and int_gradiente != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+        sx = cv2.convertScaleAbs(
+            cv2.Sobel(gris, cv2.CV_16S, 1, 0, ksize=3)
+        )
+        sy = cv2.convertScaleAbs(
+            cv2.Sobel(gris, cv2.CV_16S, 0, 1, ksize=3)
+        )
+        grad = cv2.addWeighted(sx, 0.5, sy, 0.5, 0)
+        cmap = (
+            cv2.COLORMAP_HOT
+            if int_gradiente > 0
+            else cv2.COLORMAP_OCEAN
+        )
+        efecto = cv2.applyColorMap(grad, cmap)
+        img_cv = mezclar(base, efecto, int_gradiente)
+
+    # -------------------- RELIEVE --------------------
+    if activar_relieve and int_relieve != 0:
+        base = img_cv.copy()
+        fuerza = 1.0 + abs(int_relieve) / 35.0
+        kernel = np.array([
+            [-2, -1, 0],
+            [-1,  1, 1],
+            [ 0,  1, 2]
+        ], dtype=np.float32)
+
+        if int_relieve < 0:
+            kernel = -kernel
+
+        efecto = cv2.filter2D(base, -1, kernel * fuerza)
+        efecto = cv2.add(efecto, 128)
+        img_cv = mezclar(base, efecto, int_relieve)
+
+    # -------------------- INFRARROJO --------------------
+    if activar_ir and int_ir != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+
+        if int_ir < 0:
+            gris = cv2.bitwise_not(gris)
+
+        efecto = cv2.applyColorMap(
+            gris,
+            cv2.COLORMAP_BONE
+        )
+        img_cv = mezclar(base, efecto, int_ir)
+
+    # -------------------- CANNY --------------------
+    if activar_canny and int_canny != 0:
+        base = img_cv.copy()
+        gris = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
+        umbral = int(
+            np.clip(35 + abs(int_canny) * 1.25, 20, 180)
+        )
+        bordes = cv2.Canny(
+            gris,
+            umbral,
+            min(255, umbral * 3)
+        )
+
+        if int_canny < 0:
+            bordes = cv2.bitwise_not(bordes)
+
+        efecto = cv2.cvtColor(
+            bordes,
+            cv2.COLOR_GRAY2BGR
+        )
+        img_cv = mezclar(base, efecto, int_canny)
+
     # Tamaño interno para generar una imagen de buena calidad.
     # El monitor visual tendrá un tamaño FIJO y no cambiará según la foto.
     ancho_web = 1200
