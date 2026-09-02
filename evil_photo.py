@@ -335,8 +335,13 @@ if archivo_subido is not None:
     )
 
     factor_zoom_mini = st.slider(
-        "🔍 ZOOM DEL MINI MONITOR (- / +):",
-        1.0, 12.0, 4.0, 0.5
+        "🔍 ZOOM DEL MINI MONITOR (0 = SOLO EFECTO / + = MÁS ZOOM):",
+        0.0, 12.0, 4.0, 0.5,
+        help=(
+            "0 = sin ampliación: el mini monitor funciona como una ventana "
+            "que revela el efecto exactamente sobre la zona donde pasa el puntero. "
+            "Valores mayores a 0 = amplían la zona analizada."
+        )
     )
 
     html_layout = f"""
@@ -552,8 +557,20 @@ if archivo_subido is not None:
             const canvasX = localX * (canvas.width / rect.width);
             const canvasY = localY * (canvas.height / rect.height);
 
-            // Cuanto mayor sea el factor, mayor será el zoom
-            const size = 220 / miniZoomFactor;
+            // -------------------------------------------------
+            // MODOS DEL MINI MONITOR
+            // -------------------------------------------------
+            // miniZoomFactor == 0:
+            //   Sin zoom. El mini monitor revela el EFECTO a escala real
+            //   justo debajo del puntero, como una ventana de inspección.
+            //
+            // miniZoomFactor > 0:
+            //   Zoom progresivo. Cuanto mayor sea el valor, más cerca
+            //   se verá la zona analizada.
+            const size =
+                miniZoomFactor === 0
+                    ? 220
+                    : 220 / miniZoomFactor;
 
             miniCtx.clearRect(0, 0, miniMonitor.width, miniMonitor.height);
             miniCtx.fillStyle = "#000";
@@ -562,10 +579,17 @@ if archivo_subido is not None:
             miniCtx.imageSmoothingEnabled = false;
 
             // Fuente del mini monitor:
-            // - Modo "solo efectos en mini": usa effectCanvas oculto.
-            // - Modo normal: usa exactamente lo visible en el monitor principal.
+            //
+            // ZOOM = 0:
+            //   siempre revela el efecto a escala real al pasar sobre la foto.
+            //
+            // "Solo efectos en mini" activado:
+            //   monitor principal ORIGINAL + mini monitor PROCESADO.
+            //
+            // Modo normal:
+            //   mini monitor muestra lo mismo que el monitor principal.
             const fuenteMiniMonitor =
-                efectosSoloMiniMonitor
+                (miniZoomFactor === 0 || efectosSoloMiniMonitor)
                     ? effectCanvas
                     : canvas;
 
@@ -594,6 +618,20 @@ if archivo_subido is not None:
             miniCtx.moveTo(cx, cy - 14);
             miniCtx.lineTo(cx, cy + 14);
             miniCtx.stroke();
+
+            // Indicador del modo especial "0 = SOLO EFECTO"
+            if (miniZoomFactor === 0) {{
+                miniCtx.fillStyle = "rgba(0, 0, 0, 0.72)";
+                miniCtx.fillRect(0, 0, miniMonitor.width, 22);
+
+                miniCtx.fillStyle = "#00ff66";
+                miniCtx.font = "bold 10px monospace";
+                miniCtx.fillText(
+                    "EFECTO // ESCALA REAL",
+                    10,
+                    15
+                );
+            }}
         }}
 
         function actualizarPosicion(clientX, clientY) {{
