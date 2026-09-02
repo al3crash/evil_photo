@@ -49,7 +49,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 class="titulo-consola">👁️‍🗨️ EVIL_PHOTO // QUANTUM SCANNER</h1>', unsafe_allow_html=True)
-st.markdown('<h3 style="color:#666; text-align:center; font-size:11px; margin-bottom:20px; font-family:monospace;">STATION DIGITAL DE PERITAJE FOTOGRÁFICO V25.5 // SECURE SYSTEM</h3>', unsafe_allow_html=True)
+st.markdown('<h3 style="color:#666; text-align:center; font-size:11px; margin-bottom:20px; font-family:monospace;">STATION DIGITAL DE PERITAJE FOTOGRÁFICO V26.0 // DATABASE FORUM</h3>', unsafe_allow_html=True)
 # --- PANEL DE DESCRIPCIÓN FORENSE INICIAL ---
 st.markdown("""
     <div class="panel-forense" style="border-left: 4px solid #00ff66; margin-bottom: 15px;">
@@ -60,50 +60,30 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# REQUERIMIENTO COMPLETADO: Nota de recomendación, Contador persistente y Agradecimiento de donación PayPal integrado
+# Nota de recomendación, Contador persistente y Agradecimiento de donación PayPal integrado
 html_HUD_info = """
 <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; font-family: 'Courier New', monospace;">
-    
-    <!-- Alerta de pantalla / experiencia -->
     <div style="background-color: #1a1000; border: 1px solid #ffaa00; padding: 10px; border-radius: 4px; font-size: 11px; color: #ffaa00;">
         🖥️ <b>AVISO DE INTERFAZ:</b> Se recomienda encarecidamente ejecutar esta estación digital en un <b>dispositivo de pantalla grande (PC / Laptop)</b> para desplegar la mesa de control completa de manera óptima y garantizar la mejor experiencia pericial.
     </div>
     
     <div style="display: flex; justify-content: space-between; align-items: center; background-color: #0f1115; border: 1px solid #1f242e; padding: 12px; border-radius: 4px; flex-wrap: wrap; gap: 10px;">
-        <!-- Contador de visitas persistente local -->
         <div style="font-size: 12px; color: #00ff66; font-weight: bold; letter-spacing: 1px;">
             📊 RASTREADOR DE TRÁFICO SPECTRAL: <span id="contadorVisitas" style="color: #fff; background: #220000; padding: 2px 8px; border-radius: 3px; border: 1px solid #ff2222;">...</span> ACCESOS
         </div>
-        
-        <!-- Botón de donaciones con ventana modal de agradecimiento integrada -->
         <div>
             <a href="https://www.paypal.com/ncp/payment/HAALKPRK6DT8G" target="_blank" onclick="alert('⚡ TRANSMISIÓN ENCRIPTADA PAYPAL:\\n\\n¡Te agradecemos profundamente tu valiosa contribución! Tu apoyo económico será destinado al 100% para financiar los servidores, optimizar los algoritmos de red neuronal y seguir actualizando y manteniendo esta aplicación con nuevas herramientas forenses profesionales.\\n\\nPresiona Aceptar para continuar hacia la pasarela segura.')" style="
-                background: linear-gradient(135deg, #003087 0%, #0079C1 100%);
-                color: #ffffff;
-                font-family: Arial, sans-serif;
-                font-size: 11px;
-                font-weight: bold;
-                text-decoration: none;
-                padding: 8px 16px;
-                border-radius: 20px;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-                display: inline-block;
-                transition: transform 0.2s;
+                background: linear-gradient(135deg, #003087 0%, #0079C1 100%); color: #ffffff; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; text-decoration: none; padding: 8px 16px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: inline-block; transition: transform 0.2s;
             " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 💛 APOYAR PROYECTO
             </a>
         </div>
     </div>
 </div>
-
 <script>
-    // Sistema lógico para rastrear visitas de manera real mediante almacenamiento local
     let visitas = localStorage.getItem('evil_visits_counter');
-    if (!visitas) {
-        visitas = Math.floor(Math.random() * 45) + 12; 
-    }
-    visitas = parseInt(visitas) + 1;
-    localStorage.setItem('evil_visits_counter', visitas);
+    if (!visitas) { visitas = Math.floor(Math.random() * 45) + 12; }
+    visitas = parseInt(visitas) + 1; localStorage.setItem('evil_visits_counter', visitas);
     document.getElementById('contadorVisitas').innerText = visitas;
 </script>
 """
@@ -205,7 +185,7 @@ if archivo_subido is not None:
             detecciones = net.forward()
             estados_animo = ["ANALÍTICO // ALERTA", "NEUTRO SPECTRUM", "EMOCIÓN DETECTADA", "PÁNICO SUSPENDIDO", "FELICIDAD ESPECTRAL"]
             generos = ["MASCULINO (VECTORES)", "FEMENINO (VECTORES)"]
-            for i in range(0, detecciones.shape[2]):
+            for i in range(0, detecciones.shape):
                 if detecciones[0, 0, i, 2] > 0.5:
                     box = detecciones[0, 0, i, 3:7] * np.array([w_original, h_original, w_original, h_original])
                     (x1, y1, x2, y2) = box.astype("int")
@@ -297,7 +277,7 @@ if archivo_subido is not None:
         st.markdown("<p style='color:#00ffff; font-size:12px; font-weight:bold; margin-top:0; font-family:monospace;'>🔬 REPORTE DE ANÁLISIS PERICIAL DE IMAGEN</p>", unsafe_allow_html=True)
         if activar_lga: st.info("📉 MAPEO LGA ACTIVO: Inspeccionando la continuidad de los gradientes lumínicos. Busque rupturas para detectar fotomontajes.")
         if activar_prnu: st.info("🎚️ DIAGNÓSTICO PRNU: Extrayendo la estática del ruido sensor. Las áreas editadas perderán la homogeneidad.")
-        if activar_retinex: st.success("👁️ CALIBRACIÓN CLAHE COMPLETADA: Sombras subexpuestas abiertas quirúrgicamente. Inspeccione con la lupa.")
+        if activar_retinex: st.success("👁 CALIBRACIÓN CLAHE COMPLETADA: Sombras subexpuestas abiertas quirúrgicamente. Inspeccione con la lupa.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     # --- TELEMETRÍA PARANORMAL DE CONTROL ---
@@ -332,10 +312,50 @@ if archivo_subido is not None:
     st.progress(0.98, text="Probabilidad de Entidad / Anomalía Espectral Fotográfica")
     st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.markdown("""
-        <div class="panel-forense" style="border-left: 4px solid #ffaa00; background-color: #0f1115; text-align: center;">
-            <p style="color: #ffaa00; font-size: 13px; font-weight: bold; margin: 0; font-family: monospace;">
-                🔮 SISTEMA EN ESPERA // Por favor, introduce una fotografía en el cargador superior para iniciar el escaneo espectral.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="panel-forense" style="border-left: 4px solid #ffaa00; background-color: #0f1115; text-align: center;"><p style="color: #ffaa00; font-size: 13px; font-weight: bold; margin: 0; font-family: monospace;">🔮 SISTEMA EN ESPERA // Por favor, introduce una fotografía en el cargador superior para iniciar el escaneo espectral.</p></div>""", unsafe_allow_html=True)
+# --- SISTEMA DE FORO Y CAJA DE COMENTARIOS PERSISTENTE ---
+st.markdown("---")
+st.markdown('<div class="panel-forense" style="border-left: 4px solid #ffaa00;">', unsafe_allow_html=True)
+st.markdown("<p style='color:#ffaa00; font-size:13px; font-weight:bold; margin-top:0; font-family:monospace;'>💬 BITÁCORA DE INVESTIGADORES FORENSES (FORO EN VIVO)</p>", unsafe_allow_html=True)
+
+archivo_comentarios = "comentarios_forenses.txt"
+
+# Asegurar la creación e inicialización del canal físico de la base de datos
+if not os.path.exists(archivo_comentarios):
+    with open(archivo_comentarios, "w", encoding="utf-8") as f:
+        f.write("👤 AGENTE CORE // Consola iniciada correctamente. Sistema listo para recibir reportes periciales.\\n")
+
+# Interfaz táctica de captura de datos
+with st.form("formulario_comentarios", clear_on_submit=True):
+    col_nombre, col_vacio = st.columns([1, 1])
+    with col_nombre:
+        nombre_usuario = st.text_input("👤 INDICATIVO / NOMBRE DE AGENTE:", max_chars=30, placeholder="Ej: Agente_07")
+    texto_comentario = st.text_area("📝 REPORTE FORENSE / COMENTARIO ESPECTRAL:", max_chars=300, placeholder="Escribe aquí tus hallazgos sobre la imagen...")
+    boton_enviar = st.form_submit_button("☣️ REGISTRAR REPORTE EN BITÁCORA")
+
+# Ejecución mecánica de guardado persistente en el disco duro (No desaparecen jamás)
+if boton_enviar and nombre_usuario.strip() and texto_comentario.strip():
+    nombre_limpio = nombre_usuario.replace("\n", " ").strip()
+    texto_limpio = texto_comentario.replace("\n", " ").strip()
+    with open(archivo_comentarios, "a", encoding="utf-8") as f:
+        f.write(f"👤 {nombre_limpio} // {texto_limpio}\n")
+    st.toast("☣️ Reporte encriptado e incrustado en la base de datos con éxito.")
+    st.rerun()
+
+# Lectura y renderizado holográfico de los mensajes históricos guardados en la base de datos
+st.markdown("<p style='color:#888; font-size:11px; font-family:monospace; margin-bottom:10px;'>📜 ARCHIVOS HISTÓRICOS ALMACENADOS EN EL DISCO SERVIDOR:</p>", unsafe_allow_html=True)
+if os.path.exists(archivo_comentarios):
+    with open(archivo_comentarios, "r", encoding="utf-8") as f:
+        lineas_comentarios = f.readlines()
+    
+    # Desplegar los mensajes en orden cronológico inverso (el más nuevo arriba)
+    for c in reversed(lineas_comentarios):
+        if "//" in c:
+            partes = c.split("//", 1)
+            st.markdown(f"""
+                <div style="background-color: #06070a; border: 1px solid #131722; padding: 8px; border-radius: 3px; margin-bottom: 8px; font-family: monospace; font-size: 11px;">
+                    <span style="color: #ffaa00; font-weight: bold;">{partes[0].strip()}</span><br>
+                    <span style="color: #ccc; line-height: 1.4;">{partes[1].strip()}</span>
+                </div>
+            """, unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
